@@ -17,6 +17,33 @@ class TreeViewController extends Controller
     public function __construct() {
         $this->view             = 'admin.tree.';                  
     }
+    
+    public function parent($baseUser)
+	{
+	  $parent = array();
+	  $parent[] = array(
+	      'self_sponsor_key' => $baseUser->self_sponsor_key,
+	      'sponser_unique_id' => $baseUser->sponser_unique_id,
+	      'id' => $baseUser->id,
+	      'child' => $this->childs($baseUser->self_sponsor_key),
+	    );
+	  return $parent;
+	}
+    
+    public function childs($self_sponsor_key)
+	{ 
+		$result = DB::table('user_master')->whereNotNull('self_sponsor_key')->where('sponser_unique_id',$self_sponsor_key)->get()->toArray();
+		$childs = array();
+	  foreach ($result as $key => $value) {
+	  	$childs[] = array(
+	      'self_sponsor_key' => $value->self_sponsor_key,
+	      'sponser_unique_id' => $value->sponser_unique_id,
+	      'id' => $value->id,
+	      'child' => $this->childs($value->self_sponsor_key),
+	    );
+	  }
+	  return $childs;
+	}
 
     public function index(Request $request)
     {
@@ -29,8 +56,9 @@ class TreeViewController extends Controller
             $data['user']           = Sentinel::getUser();
             $data['tree_user']           = UserMaster::whereNull('mlm_side')->whereNotNull('self_sponsor_key')->first();
             $data['tree_user_all']           = UserMaster::whereNull('mlm_side')->whereNotNull('self_sponsor_key')->get();
-
-
+            $baseUser = DB::table('user_master')->whereNull('mlm_side')->whereNotNull('self_sponsor_key')->first();
+            $tree = $this->parent($baseUser);
+            echo '<pre>'; print_r($tree);die((__FILE__).'-->'.(__FUNCTION__).'--Line('. (__LINE__).')');
             // User::getChildForTreeOneByOne($data['tree_user']['self_sponsor_key'], $spnser_f);
             
             $tree_user_1st_level           = UserMaster::where('sponser_unique_id',$data['tree_user']['self_sponsor_key'])->pluck('self_sponsor_key');
